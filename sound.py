@@ -2,15 +2,13 @@ import sounddevice as sd
 import matplotlib.pyplot as plt
 import numpy as np
 
-# Le synthé
+# PARAMS
+
 SAMPLERATE = 44100 # may depend on the computer
 FREQUENCY = 440
 WAVE = []
-# interaction
-fig, ax = plt.subplots()
-
-
 start_idx = 0
+
 
 
 # WAVE GENERATION
@@ -30,30 +28,25 @@ def sin_drop(rate, freq, frames, start_idx=0, samplerate=SAMPLERATE):
     freq = freq - rate*(t-t[0])/(t[-1]-t[0]) # frequency drop
     return np.sin(2 * np.pi * freq * t)
 
-def sin_random(freq, frames,start_idx=0, samplerate=SAMPLERATE):
-    """Sine with linear frequency dropping
-    """
-    t = (start_idx + np.arange(frames)) / SAMPLERATE
-    t = t.reshape(-1, 1)
-    freq = freq - np.random.normal(len(t)) # frequency drop
-    return np.sin(2 * np.pi * freq * t)
-
 def chord(freqs, frames, start_idx=0, samplerate=SAMPLERATE):
+    """sum of sines
+    """
     n = len(freqs)
     return sum([sin(freqs[i], frames, start_idx) for i in range(n)])/n
+
 # SOUNDDEVICE
 def callback(outdata, frames, time, status):
     global start_idx, FREQUENCY, WAVE
 
     # standard sine
-    # outdata[:] =  sin(FREQUENCY, frames, start_idx)
+    outdata[:] =  sin(FREQUENCY, frames, start_idx)
 
     # frequency drop
-    # outdata[:] =  sin_drop(0.5, FREQUENCY, frames, start_idx)
-    # FREQUENCY -=0.5
+    outdata[:] =  sin_drop(0.5, FREQUENCY, frames, start_idx)
+    FREQUENCY -=0.5
 
     # chord
-    outdata[:] = chord([FREQUENCY,1.2*FREQUENCY,2*FREQUENCY] , frames, start_idx) 
+    # outdata[:] = chord([FREQUENCY,1.2*FREQUENCY,2*FREQUENCY] , frames, start_idx) 
     
     WAVE = outdata
     start_idx += frames
@@ -76,8 +69,7 @@ def onclick(event):
     print(FREQUENCY)
     play()
     
-
-
-
+# interaction
+fig, ax = plt.subplots()
 cid = fig.canvas.mpl_connect('button_press_event', onclick)
 plt.show()
