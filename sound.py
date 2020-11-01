@@ -1,27 +1,83 @@
-from synthesizer import Player, Synthesizer, Waveform
+import sounddevice as sd
 import matplotlib.pyplot as plt
 import numpy as np
 
 # Le synthé
-player = Player()
-player.open_stream()
-synthesizer = Synthesizer(osc1_waveform=Waveform.sine, osc1_volume=1.0, use_osc2=False)
-chord = [440.0, 550.0, 660.0]
-player.play_wave(synthesizer.generate_chord(chord, 0.5))
-
+SAMPLERATE = 44100 # may depend on the computer
+FREQUENCY = 440
+WAVE = []
 # interaction
 fig, ax = plt.subplots()
 
-def plot(x):
-    plt.clf()
-    plt.plot(np.sin(6*x/440*2*3.14*np.linspace(0,1,300)))
-    plt.draw()
-    
-def onclick(event):
-    player.play_wave(synthesizer.generate_constant_wave(abs(event.x), 0.1))
-    plot(event.x)
-    
-cid = fig.canvas.mpl_connect('button_press_event', onclick)
-plot(440)
 
+start_idx = 0
+
+
+# WAVE GENERATION
+
+def sin(freq, frames, start_idx=0, samplerate=SAMPLERATE):
+    """Regular sine function
+    """
+    t = (start_idx + np.arange(frames)) / samplerate
+    t = t.reshape(-1, 1)
+    return np.sin(2 * np.pi * freq * t)
+
+def sin_drop(rate, freq, frames, start_idx=0, samplerate=SAMPLERATE):
+    """Sine with linear frequency dropping
+    """
+    t = (start_idx + np.arange(frames)) / SAMPLERATE
+    t = t.reshape(-1, 1)
+    freq = freq - rate*(t-t[0])/(t[-1]-t[0]) # frequency drop
+    return np.sin(2 * np.pi * freq * t)
+
+def sin_random(freq, frames,start_idx=0, samplerate=SAMPLERATE):
+    """Sine with linear frequency dropping
+    """
+    t = (start_idx + np.arange(frames)) / SAMPLERATE
+    t = t.reshape(-1, 1)
+    freq = freq - np.random.normal(len(t)) # frequency drop
+    return np.sin(2 * np.pi * freq * t)
+
+def chord(freqs, frames, start_idx=0, samplerate=SAMPLERATE):
+    n = len(freqs)
+    return sum([sin(freqs[i], frames, start_idx) for i in range(n)])/n
+# SOUNDDEVICE
+def callback(outdata, frames, time, status):
+    global start_idx, FREQUENCY, WAVE
+
+    # standard sine
+    # outdata[:] =  sin(FREQUENCY, frames, start_idx)
+
+    # frequency drop
+    # outdata[:] =  sin_drop(0.5, FREQUENCY, frames, start_idx)
+    # FREQUENCY -=0.5
+
+    # chord
+    outdata[:] = chord([FREQUENCY,1.2*FREQUENCY,2*FREQUENCY] , frames, start_idx) 
+    
+    WAVE = outdata
+    start_idx += frames
+
+def show_wave(wave):
+    plt.clf()
+    plt.plot(wave)
+    plt.draw()
+
+def play():
+    stream = sd.OutputStream(channels=1, callback=callback)
+    stream.start()
+    sd.sleep(800)
+    stream.stop()
+    show_wave(WAVE)
+
+def onclick(event):
+    global FREQUENCY, WAVE
+    FREQUENCY = event.x
+    print(FREQUENCY)
+    play()
+    
+
+
+
+cid = fig.canvas.mpl_connect('button_press_event', onclick)
 plt.show()
