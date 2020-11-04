@@ -24,12 +24,12 @@ def detect_shape(img):
         shape = shape_to_np(shape)
         for i in range(len(shape)):
             x,y = shape[i]
+            LAND[i] = (x,y)
             if (i==66 or i==62):
-                LAND[i] = y
                 cv2.circle(img, (x, y), 2, (0, 255, 0), -1)
             else:
                 cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
-    print(LAND[66]-LAND[62])
+    print(LAND[66][1]-LAND[62][1])
     return img
 
 vs = VideoStream(src=0).start()
