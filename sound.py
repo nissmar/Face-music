@@ -20,6 +20,13 @@ def sin(freq, frames, start_idx=0, samplerate=SAMPLERATE):
     t = t.reshape(-1, 1)
     return np.sin(2 * np.pi * freq * t)
 
+def sin_fade(freq, frames, start_idx=0, samplerate=SAMPLERATE):
+    """Regular sine function
+    """
+    t = (start_idx + np.arange(frames)) / samplerate
+    t = t.reshape(-1, 1)
+    return np.sin(2 * np.pi * freq * t)*np.exp(-(10000*t*t))
+
 def sin_drop(rate, freq, frames, start_idx=0, samplerate=SAMPLERATE):
     """Sine with linear frequency dropping
     """
@@ -56,7 +63,17 @@ def show_wave(wave):
     plt.plot(wave)
     plt.draw()
 
-def play():
+def play2(freq):
+    global FREQUENCY, WAVE
+    WAVE = sin_fade(freq,1000)
+    sd.stop()
+    sd.play(WAVE)
+    show_wave(WAVE)
+    
+
+def play(freq):
+    global FREQUENCY, WAVE
+    FREQUENCY = freq
     stream = sd.OutputStream(channels=1, callback=callback)
     stream.start()
     sd.sleep(800)
@@ -64,12 +81,11 @@ def play():
     show_wave(WAVE)
 
 def onclick(event):
-    global FREQUENCY, WAVE
-    FREQUENCY = event.x
-    print(FREQUENCY)
-    play()
+    print(event.x)
+    play2(event.x)
     
 # interaction
-fig, ax = plt.subplots()
-cid = fig.canvas.mpl_connect('button_press_event', onclick)
-plt.show()
+if __name__ == "__main__":
+    fig, ax = plt.subplots()
+    cid = fig.canvas.mpl_connect('button_press_event', onclick)
+    plt.show()
