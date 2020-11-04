@@ -28,6 +28,8 @@ vs = VideoStream(src=0).start()
 
 # loop over the frames of the video
 while True:
+    frame = vs.read()
+    frame = imutils.resize(frame, width=200)
     img = detect_shape(vs.read())
     # left_eye, right_eye = detect_eyes(img)
     cv2.imshow('Your beautiful face', img)
