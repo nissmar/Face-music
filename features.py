@@ -4,6 +4,8 @@ import numpy as np
 from imutils.video import VideoStream
 import imutils
 
+#important landmark
+LAND = {}
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_68.dat')
@@ -14,13 +16,20 @@ def shape_to_np(shape, dtype="int"):
     return coords
     
 def detect_shape(img):
+    global LAND
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # convert to grayscale 
     rects = detector(gray, 1) # rects contains all the faces detected
     for (i, rect) in enumerate(rects):
         shape = predictor(gray, rect)
         shape = shape_to_np(shape)
-        for (x, y) in shape:
-            cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
+        for i in range(len(shape)):
+            x,y = shape[i]
+            if (i==66 or i==62):
+                LAND[i] = y
+                cv2.circle(img, (x, y), 2, (0, 255, 0), -1)
+            else:
+                cv2.circle(img, (x, y), 2, (0, 0, 255), -1)
+    print(LAND[66]-LAND[62])
     return img
 
 vs = VideoStream(src=0).start()
@@ -32,6 +41,7 @@ while True:
     frame = imutils.resize(frame, width=400)
     img = detect_shape(frame)
     # left_eye, right_eye = detect_eyes(img)
+    img = cv2.resize(img,(960,540))
     cv2.imshow('Your beautiful face', img)
     
     key = cv2.waitKey(100) & 0xFF
