@@ -5,87 +5,70 @@ import numpy as np
 # PARAMS
 
 SAMPLERATE = 44100 # may depend on the computer
-FREQUENCY = 440
+FREQUENCY_PLAYING = 440 # current frequency
+FREQUENCY = 440 # goal
 WAVE = []
-start_idx = 0
+PHASE = 0 # phase
 
 
 
 # WAVE GENERATION
 
-def sin(freq, frames, start_idx=0, samplerate=SAMPLERATE):
-    """Regular sine function
-    """
-    t = (start_idx + np.arange(frames)) / samplerate
-    t = t.reshape(-1, 1)
-    return np.sin(2 * np.pi * freq * t)
+def sin_transition(freq1, freq2, frames, samplerate=SAMPLERATE):
+    """sine function with variable frequency"""
+    global PHASE
 
-def sin_fade(freq, frames, start_idx=0, samplerate=SAMPLERATE):
-    """Regular sine function
-    """
-    t = (start_idx + np.arange(frames)) / samplerate
-    t = t.reshape(-1, 1)
-    return np.sin(2 * np.pi * freq * t)*np.exp(-(10000*t*t))
+    t = np.arange(frames)/ samplerate
+    G = (freq2*t*t - freq1*(t[-1]-t)*(t[-1]-t))/2/t[-1] + t[-1]/2*freq1 # integrates (1-t)f1 + t*f2
+    out = np.sin(2 * np.pi * G + PHASE).reshape(-1,1)    
+    PHASE += 2 * np.pi * (G[-1] + freq2*t[1]) # phase shift
+    return out
 
-def sin_drop(rate, freq, frames, start_idx=0, samplerate=SAMPLERATE):
-    """Sine with linear frequency dropping
-    """
-    t = (start_idx + np.arange(frames)) / SAMPLERATE
-    t = t.reshape(-1, 1)
-    freq = freq - rate*(t-t[0])/(t[-1]-t[0]) # frequency drop
-    return np.sin(2 * np.pi * freq * t)
-
-def chord(freqs, frames, start_idx=0, samplerate=SAMPLERATE):
-    """sum of sines
-    """
-    n = len(freqs)
-    return sum([sin(freqs[i], frames, start_idx) for i in range(n)])/n
+  
 
 # SOUNDDEVICE
 def callback(outdata, frames, time, status):
-    global start_idx, FREQUENCY, WAVE
+    global FREQUENCY,FREQUENCY_PLAYING, WAVE
 
     # standard sine
-    outdata[:] =  sin(FREQUENCY, frames, start_idx)
+    WAVE = sin_transition(FREQUENCY_PLAYING, FREQUENCY, frames)
+    outdata[:] =  WAVE
 
-    # frequency drop
-    outdata[:] =  sin_drop(0.5, FREQUENCY, frames, start_idx)
-    FREQUENCY -=0.5
+    FREQUENCY_PLAYING = FREQUENCY
 
-    # chord
-    # outdata[:] = chord([FREQUENCY,1.2*FREQUENCY,2*FREQUENCY] , frames, start_idx) 
-    
-    WAVE = outdata
-    start_idx += frames
 
-def show_wave(wave):
-    plt.clf()
-    plt.plot(wave)
-    plt.draw()
-
-def play2(freq):
-    global FREQUENCY, WAVE
-    WAVE = sin_fade(freq,1000)
-    sd.stop()
-    sd.play(WAVE)
-    show_wave(WAVE)
-    
-
-def play(freq):
-    global FREQUENCY, WAVE
-    FREQUENCY = freq
-    stream = sd.OutputStream(channels=1, callback=callback)
-    stream.start()
-    sd.sleep(800)
-    stream.stop()
-    show_wave(WAVE)
 
 def onclick(event):
-    print(event.x)
-    play2(event.x)
+    global FREQUENCY
+    FREQUENCY = event.x
+    plt.clf()
+    plt.plot(WAVE)
+    plt.draw()
     
+def set_freq(freq):
+    global FREQUENCY
+    FREQUENCY = freq
+
 # interaction
 if __name__ == "__main__":
+    stream = sd.OutputStream(channels=1, callback=callback,blocksize=10000)
+    stream.start()
+
     fig, ax = plt.subplots()
     cid = fig.canvas.mpl_connect('button_press_event', onclick)
     plt.show()
+    stream.stop()
+
+# frames = 512
+# L=[]
+# func = sin_transition
+# f1 = 800
+# f2 =1600
+# L.append(func(f1,f1, frames))
+# L.append(func(f1,f1, frames))
+# L.append(func(f1,f2,frames))
+# L.append(func(f2,f2,frames))
+# L.append(func(f2,f2,frames))
+# L.append(func(f2,f2,frames))
+# plt.plot(np.concatenate(L),'-')
+# plt.show()

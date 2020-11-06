@@ -3,8 +3,9 @@ import dlib
 import numpy as np
 from imutils.video import VideoStream
 import imutils
-from sound import play, play2
-#important landmark
+from sound import callback, set_freq
+import sounddevice as sd
+
 LAND = [(0,0) for i in range(68)]
 
 detector = dlib.get_frontal_face_detector()
@@ -36,19 +37,21 @@ vs = VideoStream(src=0).start()
 
 
 i=0
+stream = sd.OutputStream(channels=1, callback=callback,blocksize=2000)
+stream.start()
+
 # loop over the frames of the video
 while True:
     i+=1
     frame = vs.read()
     nframe = imutils.resize(frame, width=400)
     img = detect_shape(nframe,frame)
-    # cv2.imshow('Your beautiful face', frame)
-    if i%3==0:
-        play2(300+20*(LAND[66][1]-LAND[62][1]))
+    cv2.imshow('Your beautiful face', frame)
+    set_freq(300+20*(LAND[66][1]-LAND[62][1]))
     key = cv2.waitKey(100) & 0xFF
     if key == ord("q"):
         break
-
+stream.stop()
 # cleanup the camera and close any op*en windows
 vs.stop()
 cv2.destroyAllWindows()
