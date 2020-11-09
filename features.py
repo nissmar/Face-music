@@ -27,13 +27,23 @@ def detect_shape(img,outimg):
         for i in range(len(shape)):
             x,y = shape[i]
             LAND[i] = (x,y)
-            if (i==66 or i==62):
+            if (i==66 or i==62 or i==38 or i ==37 or i ==40 or i ==41 ):
                 cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 255, 0), -1)
             else:
                 cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 0, 255), -1)
     return img
 
 vs = VideoStream(src=0).start()
+
+
+def face_frequency():
+    mouse_open = (LAND[66][1]-LAND[62][1])
+    fac = 1
+
+    # print((LAND[40][1]+LAND[41][1]-LAND[38][1]-LAND[37][1]), " vs ", (LAND[39][0]-LAND[36][0]))
+    # if (LAND[40][1]+LAND[41][1]-LAND[38][1]-LAND[37][1])<0.43*(LAND[39][0]-LAND[36][0]):
+    #     fac = 1.5
+    return (mouse_open*20 + 300)*fac
 
 
 i=0
@@ -46,13 +56,15 @@ while True:
     frame = vs.read()
     nframe = imutils.resize(frame, width=400)
     img = detect_shape(nframe,frame)
-    cv2.imshow('Your beautiful face', frame)
-    set_freq(300+20*(LAND[66][1]-LAND[62][1]))
+    frame = cv2.flip(frame, 1)
+    # cv2.imshow('Your beautiful face', frame)
+    set_freq(face_frequency())
     key = cv2.waitKey(100) & 0xFF
     if key == ord("q"):
         break
 stream.stop()
-# cleanup the camera and close any op*en windows
+
+# cleanup the camera and close any open windows
 vs.stop()
 cv2.destroyAllWindows()
 
