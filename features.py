@@ -83,10 +83,11 @@ stream = sd.OutputStream(channels=1, callback=callback,blocksize=2000)
 #         emotion_label = input()
 #         saver.set_emotion_label(emotion_label)
 
-### 
+### KEY LANDMARK INTERPOLATION
 
 l1,l2 = None,None
 while True:
+    """ press space two times to define the first and second references. Press space again to erase """
     i+=1
     frame = vs.read()
     nframe = imutils.resize(frame, width=400)
