@@ -1,12 +1,12 @@
-from sound_training import play
 import time
 import cv2
 import os
 import pickle
 
-def display_time(img, mu):
+def display_time(img, mu, dx=0):
     """mu in [0,1]"""
-    x1,x2,y1,y2 = 30,200,30,70
+    x1,x2,y1,y2 = 30+dx,200+dx,30,70
+    
     cv2.rectangle(img, (x1,y1), (x2,y2), (0,0,255), 1)
     x1,y1,x2,y2 = x1+1,y1+1,int(x1+mu*(x2-x1-2)),y2-1
     cv2.rectangle(img,(x1,y1), (x2,y2),(255,255,255), -1)

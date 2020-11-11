@@ -3,7 +3,7 @@ import dlib
 import numpy as np
 from imutils.video import VideoStream
 import imutils
-from sound import callback, set_freq
+from sound import callback, set_freq, set_mix
 import sounddevice as sd
 
 from landmark_pickle import LandmarkSaver, load_landmark, display_time
@@ -53,7 +53,7 @@ i=0
 
 ready_for_record = False
 is_capturing = False
-stream = sd.OutputStream(channels=1, callback=callback,blocksize=2000)
+stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
 
 ### CAPTURING LANDMARKS
 # stream.start()
@@ -84,17 +84,27 @@ stream = sd.OutputStream(channels=1, callback=callback,blocksize=2000)
 #         saver.set_emotion_label(emotion_label)
 
 ### KEY LANDMARK INTERPOLATION
-
+stream.start()
 l1,l2 = None,None
+l3,l4 = None,None
 while True:
     """ press space two times to define the first and second references. Press space again to erase """
     i+=1
     frame = vs.read()
+    frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     landmark = detect_shape(nframe,frame)
     if not(l2 is None or landmark is None):
         r = mean_ratio(l1,l2,np_to_complex(landmark))
-        frame = display_time(frame,min(max(r,0),1))
+        r = min(max(r,0),1)
+        set_freq(440*(1+0.5*r))
+        frame = display_time(frame,r)
+    if not(l4 is None or landmark is None):
+        r = mean_ratio(l3,l4,np_to_complex(landmark))
+        r = min(max(r,0),1)
+        set_mix(r)
+        frame = display_time(frame,min(max(r,0),1),300)
+
 
     cv2.imshow('Your beautiful face', frame)
 
@@ -106,8 +116,13 @@ while True:
             l1 = np_to_complex(landmark)
         elif l2 is None:
             l2 = np_to_complex(landmark)
-        else:
-            l1,l2 = None, None
+        elif l3 is None:
+            l3 = np_to_complex(landmark)
+        elif l4 is None:
+            l4 = np_to_complex(landmark)
+    if key == ord("e"):
+        l1,l2 = None,None
+        l3,l4 = None,None
    
 stream.stop()
 # cleanup the camera and close any open windows
