@@ -34,15 +34,18 @@ class LandmarkSaver:
         folder = f"data/landmark_records/{self.emotion_label}"
         if not os.path.exists(folder):
             os.mkdir(folder)
-            with open(f"{folder}/metadata.pickle", 'wb') as pickle_out:
-                pickle.dump(0,pickle_out)
-        #store record
-        with open(f"{folder}/metadata.pickle", 'rb') as pickle_in:
-            record_id = pickle.load(pickle_in)
+        existing_id = []
+        for f in os.listdir(folder):
+            if f.startswith('record'):
+                _,suffix = f.split('_')
+                id,_ = suffix.split('.')
+                existing_id.append(int(id))
+        if not existing_id:
+            record_id = 0
+        else:
+            record_id = min(list(set(range(max(existing_id)+2)) - set(existing_id)))
         with open(f"{folder}/record_{record_id}.pickle", 'wb') as pickle_out:
             pickle.dump(self.data, pickle_out)
-        with open(f"{folder}/metadata.pickle", 'wb') as pickle_out:
-            pickle.dump(record_id+1, pickle_out)
         
 
 

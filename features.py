@@ -5,8 +5,12 @@ from imutils.video import VideoStream
 import imutils
 from sound import callback, set_freq
 import sounddevice as sd
+from tensorflow import keras
 
 from landmark_saver import LandmarkSaver
+
+#tensorflow model
+dnn_model = keras.models.load_model('mouth_model')
 
 saver = LandmarkSaver()
 
@@ -51,6 +55,13 @@ def face_frequency():
     return (mouse_open*20 + 300)*fac
 
 
+def evaluate_nn(landmark):
+    if landmark is None:
+        return 0
+    landmark_input = np.array([landmark.flatten().astype(np.float32)])
+    return dnn_model.predict(landmark_input)[0]
+
+
 i=0
 stream = sd.OutputStream(channels=1, callback=callback,blocksize=2000)
 stream.start()
@@ -76,6 +87,8 @@ while True:
     key = cv2.waitKey(100) & 0xFF
     if key == ord("q"):
         break
+    if key == ord("n"): #show neural network estimation
+        print(evaluate_nn(landmark))
     if ready_for_record and not is_capturing and key == ord(" "):
         print("Starting to record for emotion:", saver.emotion_label)
         ready_for_record = False
