@@ -6,12 +6,18 @@ import imutils
 from sound import callback, set_freq, set_mix
 import sounddevice as sd
 from tensorflow import keras
+import pickle
 
 from landmark_pickle import LandmarkSaver, load_landmark, display_time
 from explicitely_killing_hugo import np_to_complex, mean_ratio
+from landmark_processing import normalize_landmark
 
 #tensorflow model
 dnn_model = keras.models.load_model('mouth_model')
+#SVM model
+with open('mouth_svm.pickle','rb') as pickle_in:
+    svm_regr = pickle.load(pickle_in)
+
 
 saver = LandmarkSaver()
 
@@ -52,11 +58,18 @@ def face_frequency(landmark):
     return (mouse_open*20 + 300)
 
 
+
 def evaluate_nn(landmark):
     if landmark is None:
         return 0
-    landmark_input = np.array([landmark.flatten().astype(np.float32)])
-    return dnn_model.predict(landmark_input)[0]
+    nn_input = np.array([normalize_landmark(landmark)])
+    return dnn_model.predict(nn_input)[0]
+
+def evaluate_svm(landmark):
+    if landmark is None:
+        return 0
+    input = np.array([normalize_landmark(landmark)])
+    return svm_regr.predict(input)[0]
 
 
 i=0
@@ -110,11 +123,16 @@ while True:
         r = min(max(r,0),1)
         set_freq(440*(1+0.5*r))
         frame = display_time(frame,r)
-    if not(l4 is None or landmark is None):
+    elif not(l4 is None or landmark is None):
         r = mean_ratio(l3,l4,np_to_complex(landmark))
         r = min(max(r,0),1)
         set_mix(r)
         frame = display_time(frame,min(max(r,0),1),300)
+    else:
+        r = evaluate_svm(landmark)
+        r = min(1,max(0,r))
+        set_freq(440*(1+0.5*r))
+
 
 
     cv2.imshow('Your beautiful face', frame)
@@ -123,7 +141,13 @@ while True:
     if key == ord("q"):
         break
     if key == ord("n"): #show neural network estimation
-        print(evaluate_nn(landmark))
+        x = evaluate_nn(landmark)[0]
+        print(x)
+        x = min(1,max(0,x))
+        set_freq(440*(1+0.5*x))
+    if key == ord('s'):
+        x = evaluate_svm(landmark)
+        print(x)
     if ready_for_record and not is_capturing and key == ord(" "):
         print("Starting to record for emotion:", saver.emotion_label)
         ready_for_record = False
