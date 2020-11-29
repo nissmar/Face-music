@@ -36,7 +36,7 @@ def angles_from_title(title):
     if '-' in title:
         idx1 = title.index('-')
     if '+' in title:
-        idx1 = min(idx1).index('+')
+        idx1 = min(idx1, title.index('+'))
     title_end = title[idx1+1:]
     if '-' in title_end:
         idx2 = idx1+1 + title_end.index('-')
@@ -44,8 +44,8 @@ def angles_from_title(title):
         idx2 = idx1+1 + title_end.index('+')
     
     tilt = int(title[idx1:idx2])
-    pan = int(title[idx2:])
-    
+    pan = int(title[idx2:-4])
+
     return tilt,pan
 
 # img = cv2.imread('data/images/face1.jpeg',0) # reads image 'opencv-logo.png' as grayscale
