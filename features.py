@@ -17,6 +17,10 @@ dnn_model = keras.models.load_model('mouth_model')
 #SVM model
 with open('mouth_svm.pickle','rb') as pickle_in:
     svm_regr = load(pickle_in)
+with open('tilt_svm.pickle','rb') as pickle_in:
+    svm_tilt = load(pickle_in)
+with open('pan_svm.pickle','rb') as pickle_in:
+    svm_pan = load(pickle_in)
 
 
 saver = LandmarkSaver()
@@ -72,6 +76,13 @@ def evaluate_svm(landmark):
     return svm_regr.predict(input)[0]
 
 
+def evaluate_svm_pose(landmark):
+    if landmark is None:
+        return 0
+    input = np.array([normalize_landmark(landmark)])
+    return svm_tilt.predict(input)[0], svm_pan.predict(input)[0]
+
+
 i=0
 
 
@@ -79,33 +90,6 @@ ready_for_record = False
 is_capturing = False
 stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
 
-### CAPTURING LANDMARKS
-# stream.start()
-# while True:
-#     i+=1
-#     frame = vs.read()
-#     nframe = imutils.resize(frame, width=400)
-#     landmark = detect_shape(nframe,frame)
-
-#     set_freq(face_frequency(landmark))
-
-#     if is_capturing:
-#         is_capturing, frame = saver.poke(frame, landmark)
-#     cv2.imshow('Your beautiful face', frame)
-
-#     key = cv2.waitKey(100) & 0xFF
-#     if key == ord("q"):
-#         break
-#     if ready_for_record and not is_capturing and key == ord(" "):
-#         print("Starting to record for emotion:", saver.emotion_label)
-#         ready_for_record = False
-#         is_capturing = True
-#         saver.begin_record()
-#     if not ready_for_record and not is_capturing and key == ord(" "):
-#         ready_for_record = True
-#         print("Please type an emotion label corresponding to this record:")
-#         emotion_label = input()
-#         saver.set_emotion_label(emotion_label)
 
 ### KEY LANDMARK INTERPOLATION
 stream.start()
@@ -156,9 +140,28 @@ while True:
                 frame = display_time(frame,min(max(r,0),1),300)
         else:
             r = evaluate_svm(landmark)
-            r = min(1,max(0,r))
-            set_freq(440*(1+0.5*r))
-            frame = display_time(frame,r)
+            if r<0.3:
+                tresh = 20
+                r,r2 = evaluate_svm_pose(landmark)
+                r+=tresh
+                r/=2*tresh
+                r = min(1,max(0,r))
+                r2+=tresh
+                r2/=2*tresh
+                r2 = min(1,max(0,r2))
+                r,r2 = 1-r,1-r2
+
+
+                dist = [abs(r2),abs(r2-0.5), abs(1-r2)]
+                dist2 = [abs(r),abs(1-r)]
+                mult = [147,196,220,330,294,261][dist.index(min(dist))+3*dist2.index(min(dist2))]
+                set_mix(0.3)
+                set_freq(mult)
+                frame = display_time(frame,r2,300)
+                frame = display_time(frame,r)
+                height, width, _ = frame.shape
+                cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 0), -1)
+                
 
 
 
