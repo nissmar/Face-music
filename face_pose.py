@@ -33,11 +33,13 @@ def draw_land(img):
 
 
 def angles_from_title(title):
-    pan = int(title[-6:-4])
-    if title[-7]=='-':
+    idx = min(title.index('-'),title.index('+'))
+    pan = int(title[idx+1:idx+3])
+    if title[idx]=='-':
         pan = -pan
-    tilt = int(title[-9:-7])
-    if title[-10]=='-':
+    idx += 3
+    tilt = int(title[idx+1:idx+3])
+    if title[idx]=='-':
         tilt = -tilt
     return tilt, pan
 
