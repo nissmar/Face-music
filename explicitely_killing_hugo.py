@@ -22,6 +22,11 @@ def mean_ratio(land1,land2,land):
 def plotc(arr):
     plt.plot(arr.real,arr.imag,'o')
     
+def lat_angle(land,m,M):
+    return (abs((land[28]-land[1])/(land[16]-land[1]))-m)/(M-m)
+
+def vert_angle(land,m,M):
+    return (abs( (land[30]-land[27]).imag) - m)/(M-m)
 
 if __name__ == "__main__":
     rec = load_landmark('turn')[0]

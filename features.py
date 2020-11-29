@@ -6,17 +6,17 @@ import imutils
 from sound import callback, set_freq, set_mix
 import sounddevice as sd
 from tensorflow import keras
-import pickle
+from pickle import load
 
 from landmark_pickle import LandmarkSaver, load_landmark, display_time
-from explicitely_killing_hugo import np_to_complex, mean_ratio
+from explicitely_killing_hugo import np_to_complex, mean_ratio, lat_angle,vert_angle
 from landmark_processing import normalize_landmark
 
 #tensorflow model
 dnn_model = keras.models.load_model('mouth_model')
 #SVM model
 with open('mouth_svm.pickle','rb') as pickle_in:
-    svm_regr = pickle.load(pickle_in)
+    svm_regr = load(pickle_in)
 
 
 saver = LandmarkSaver()
@@ -40,7 +40,7 @@ def detect_shape(img,outimg):
         landmark = shape_to_np(shape)
         for i in range(len(landmark)):
             x,y = landmark[i]
-            if (i in [39,42]):
+            if (i in [7,8,9,21,22,31,35]):
                 cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 255, 0), -1)
             else:
                 cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 0, 255), -1)
@@ -109,8 +109,17 @@ stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
 
 ### KEY LANDMARK INTERPOLATION
 stream.start()
+
+## custom landmark
 l1,l2 = None,None
 l3,l4 = None,None
+
+## personal calibration
+cal = []
+calibrated = False
+cal_v0,cal_v1 = None,None
+cal_l0,cal_l1 = None,None
+
 while True:
     """ press space two times to define the first and second references. Press space again to erase """
     i+=1
@@ -118,26 +127,54 @@ while True:
     frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     landmark = detect_shape(nframe,frame)
-    if not(l2 is None or landmark is None):
-        r = mean_ratio(l1,l2,np_to_complex(landmark))
-        r = min(max(r,0),1)
-        set_freq(440*(1+0.5*r))
-        frame = display_time(frame,r)
-    elif not(l4 is None or landmark is None):
-        r = mean_ratio(l3,l4,np_to_complex(landmark))
-        r = min(max(r,0),1)
-        set_mix(r)
-        frame = display_time(frame,min(max(r,0),1),300)
-    else:
-        r = evaluate_svm(landmark)
-        r = min(1,max(0,r))
-        set_freq(440*(1+0.5*r))
+    if not(landmark is None):
+        if (calibrated):
+                r = vert_angle(np_to_complex(landmark),cal_v0,cal_v1)
+                r = min(1,max(0,r))
+                
+                r2 = lat_angle(np_to_complex(landmark),cal_l0,cal_l1)
+                r2 = min(max(r2,0),1)
+                set_freq(440*(1+0.5*r2))
+                set_mix(r)
+                frame = display_time(frame,r)
+                frame = display_time(frame,min(max(r2,0),1),300)
+                height, width, _ = frame.shape
+
+                cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 0), -1)
+        else:
+            cal.append([vert_angle(np_to_complex(landmark),0,1),lat_angle(np_to_complex(landmark),0,1)])
+
+        if not(l2 is None):
+            r = mean_ratio(l1,l2,np_to_complex(landmark))
+            r = min(max(r,0),1)
+            set_freq(440*(1+0.5*r))
+            frame = display_time(frame,r)
+            if not(l4 is None):
+                r = mean_ratio(l3,l4,np_to_complex(landmark))
+                r = min(max(r,0),1)
+                set_mix(r)
+                frame = display_time(frame,min(max(r,0),1),300)
+        else:
+            r = evaluate_svm(landmark)
+            r = min(1,max(0,r))
+            set_freq(440*(1+0.5*r))
+            frame = display_time(frame,r)
 
 
 
     cv2.imshow('Your beautiful face', frame)
 
     key = cv2.waitKey(100) & 0xFF
+    if key == ord("a"): # calibration ok
+        if (calibrated):
+            calibrated = False
+            cal = []
+        else:
+            v_cal = [e[0] for e in cal]
+            l_cal = [e[1] for e in cal]
+            cal_v0, cal_v1 = min(v_cal), max(v_cal)
+            cal_l0, cal_l1 = min(l_cal), max(l_cal)
+            calibrated = True
     if key == ord("q"):
         break
     if key == ord("n"): #show neural network estimation
@@ -160,14 +197,15 @@ while True:
         saver.set_emotion_label(emotion_label)
     
     if key == ord("c"):
-        if l1 is None:
-            l1 = np_to_complex(landmark)
-        elif l2 is None:
-            l2 = np_to_complex(landmark)
-        elif l3 is None:
-            l3 = np_to_complex(landmark)
-        elif l4 is None:
-            l4 = np_to_complex(landmark)
+        if not(landmark is None):
+            if l1 is None:
+                l1 = np_to_complex(landmark)
+            elif l2 is None:
+                l2 = np_to_complex(landmark)
+            elif l3 is None:
+                l3 = np_to_complex(landmark)
+            elif l4 is None:
+                l4 = np_to_complex(landmark)
     if key == ord("e"):
         l1,l2 = None,None
         l3,l4 = None,None
