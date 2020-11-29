@@ -33,6 +33,7 @@ def draw_land(img):
 
 
 def angles_from_title(title):
+    idx1 = 100
     if '-' in title:
         idx1 = title.index('-')
     if '+' in title:
