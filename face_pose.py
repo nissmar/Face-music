@@ -33,15 +33,20 @@ def draw_land(img):
 
 
 def angles_from_title(title):
-    idx = min(title.index('-'),title.index('+'))
-    pan = int(title[idx+1:idx+3])
-    if title[idx]=='-':
-        pan = -pan
-    idx += 3
-    tilt = int(title[idx+1:idx+3])
-    if title[idx]=='-':
-        tilt = -tilt
-    return tilt, pan
+    if '-' in title:
+        idx1 = title.index('-')
+    if '+' in title:
+        idx1 = min(idx1).index('+')
+    title_end = title[idx1+1:]
+    if '-' in title_end:
+        idx2 = idx1+1 + title_end.index('-')
+    else:
+        idx2 = idx1+1 + title_end.index('+')
+    
+    tilt = int(title[idx1:idx2])
+    pan = int(title[idx2:])
+    
+    return tilt,pan
 
 # img = cv2.imread('data/images/face1.jpeg',0) # reads image 'opencv-logo.png' as grayscale
 # land = detect_shape(img)
