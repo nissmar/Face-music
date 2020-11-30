@@ -139,7 +139,12 @@ while True:
                 set_mix(r)
                 frame = display_time(frame,min(max(r,0),1),300)
         else:
+            height, width, _ = frame.shape
+
             r = evaluate_svm(landmark)
+            cv2.line(frame,(int(width/3), 0),(int(width/3), int(height)), (255, 0, 0))
+            cv2.line(frame,(int(2*width/3), 0),(int(2*width/3), int(height)), (255, 0, 0))
+            cv2.line(frame,(0,int(height/2)),(int(width), int(height/2)), (255, 0, 0))
             if r<0.3:
                 tresh = 20
                 r,r2 = evaluate_svm_pose(landmark)
@@ -152,17 +157,15 @@ while True:
                 r,r2 = 1-r,1-r2
 
 
-                dist = [abs(r2),abs(r2-0.5), abs(1-r2)]
+                dist = [abs(r2-1.0/6),abs(r2-0.5), abs(1-1.0/6-r2)]
                 dist2 = [abs(r),abs(1-r)]
-                mult = [147,196,220,330,294,261][dist.index(min(dist))+3*dist2.index(min(dist2))]
+                index = dist.index(min(dist))+3*dist2.index(min(dist2))
+                mult = [147,196,220,330,294,261][index]
                 set_mix(0.3)
                 set_freq(mult)
                 frame = display_time(frame,r2,300)
                 frame = display_time(frame,r)
-                height, width, _ = frame.shape
                 cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 0), -1)
-                
-
 
 
     cv2.imshow('Your beautiful face', frame)

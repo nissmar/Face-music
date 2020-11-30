@@ -64,7 +64,7 @@ def callback(outdata, frames, time, status):
 
     outdata[:] =  WAVE
 
-    FREQUENCY_PLAYING=adjust(FREQUENCY_PLAYING,FREQUENCY,400)
+    FREQUENCY_PLAYING=adjust(FREQUENCY_PLAYING,FREQUENCY,100)
 
 
 def onclick(event):
