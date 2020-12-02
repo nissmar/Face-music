@@ -141,34 +141,38 @@ while True:
         else:
             height, width, _ = frame.shape
 
-            r = evaluate_svm(landmark)
             cv2.line(frame,(int(width/3), 0),(int(width/3), int(height)), (255, 0, 0))
             cv2.line(frame,(int(2*width/3), 0),(int(2*width/3), int(height)), (255, 0, 0))
             cv2.line(frame,(0,int(height/2)),(int(width), int(height/2)), (255, 0, 0))
-            if r<0.3:
-                tresh = 20
-                r,r2 = evaluate_svm_pose(landmark)
-                r+=tresh
-                r/=2*tresh
-                r = min(1,max(0,r))
-                r2+=tresh
-                r2/=2*tresh
-                r2 = min(1,max(0,r2))
-                r,r2 = 1-r,1-r2
+            tresh = 20
+            r,r2 = evaluate_svm_pose(landmark)
+            r+=tresh
+            r/=2*tresh
+            r = min(1,max(0,r))
+            r2+=tresh
+            r2/=2*tresh
+            r2 = min(1,max(0,r2))
+            r,r2 = 1-r,1-r2
 
 
-                dist = [abs(r2-1.0/6),abs(r2-0.5), abs(1-1.0/6-r2)]
-                dist2 = [abs(r),abs(1-r)]
-                index = dist.index(min(dist))+3*dist2.index(min(dist2))
-                mult = [147,196,220,330,294,261][index]
-                set_mix(0.3)
+            dist = [abs(r2-1.0/6),abs(r2-0.5), abs(1-1.0/6-r2)]
+            dist2 = [abs(r),abs(1-r)]
+            index = dist.index(min(dist))+3*dist2.index(min(dist2))
+            # mult = [147,196,220,330,294,261][index] #pentatonic
+            mult = [261.63,196.00,164.81,329.63,220.00,174.61][index] #pentatonic
+            
+            frame = display_time(frame,r2,300)
+            frame = display_time(frame,r)
+            if evaluate_svm(landmark)<0.3:
+                set_mix(0.7)
                 set_freq(mult)
-                frame = display_time(frame,r2,300)
-                frame = display_time(frame,r)
                 cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 0), -1)
+            else:
+                cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 255), -1)
 
 
-    cv2.imshow('Your beautiful face', frame)
+
+    cv2.imshow('Face music', frame)
 
     key = cv2.waitKey(100) & 0xFF
     if key == ord("a"): # calibration ok
