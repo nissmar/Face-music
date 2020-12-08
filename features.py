@@ -8,7 +8,7 @@ import sounddevice as sd
 from tensorflow import keras
 from pickle import load
 
-from landmark_pickle import LandmarkSaver, load_landmark, display_time
+from landmark_pickle import load_landmark, display_time
 from explicitely_killing_hugo import np_to_complex, mean_ratio, lat_angle,vert_angle
 from landmark_processing import normalize_landmark
 
@@ -16,14 +16,14 @@ from landmark_processing import normalize_landmark
 dnn_model = keras.models.load_model('mouth_model')
 #SVM model
 with open('mouth_svm.pickle','rb') as pickle_in:
-    svm_regr = load(pickle_in)
+    svm_mouth = load(pickle_in)
+with open('sourcils_svm.pickle','rb') as pickle_in:
+    svm_eyebrows = load(pickle_in)
 with open('tilt_svm.pickle','rb') as pickle_in:
     svm_tilt = load(pickle_in)
 with open('pan_svm.pickle','rb') as pickle_in:
     svm_pan = load(pickle_in)
 
-
-saver = LandmarkSaver()
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_68.dat')
@@ -69,11 +69,11 @@ def evaluate_nn(landmark):
     nn_input = np.array([normalize_landmark(landmark)])
     return dnn_model.predict(nn_input)[0]
 
-def evaluate_svm(landmark):
+def evaluate_svm(landmark, regr):
     if landmark is None:
         return 0
     input = np.array([normalize_landmark(landmark)])
-    return svm_regr.predict(input)[0]
+    return regr.predict(input)[0]
 
 
 def evaluate_svm_pose(landmark):
@@ -86,8 +86,6 @@ def evaluate_svm_pose(landmark):
 i=0
 
 
-ready_for_record = False
-is_capturing = False
 stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
 
 
@@ -163,7 +161,7 @@ while True:
             
             frame = display_time(frame,r2,300)
             frame = display_time(frame,r)
-            if evaluate_svm(landmark)<0.3:
+            if evaluate_svm(landmark, svm_mouth)<0.3:
                 set_mix(0.7)
                 set_freq(mult)
                 cv2.circle(frame, (int(r2*width), int(r*height)), 10, (0, 255, 0), -1)
@@ -187,25 +185,11 @@ while True:
             calibrated = True
     if key == ord("q"):
         break
-    if key == ord("n"): #show neural network estimation
-        x = evaluate_nn(landmark)[0]
-        print(x)
-        x = min(1,max(0,x))
-        set_freq(440*(1+0.5*x))
-    if key == ord('s'):
-        x = evaluate_svm(landmark)
-        print(x)
-    if ready_for_record and not is_capturing and key == ord(" "):
-        print("Starting to record for emotion:", saver.emotion_label)
-        ready_for_record = False
-        is_capturing = True
-        saver.begin_record()
-    if not ready_for_record and not is_capturing and key == ord(" "):
-        ready_for_record = True
-        print("Please type an emotion label corresponding to this record:")
-        emotion_label = input()
-        saver.set_emotion_label(emotion_label)
-    
+    if key == ord('s'): # evaluate landmark with mouth and eyebrows svm
+        x = evaluate_svm(landmark, svm_mouth)
+        print("Mouth:", x)
+        x = evaluate_svm(landmark, svm_eyebrows)
+        print("Eyebrows:", x)
     if key == ord("c"):
         if not(landmark is None):
             if l1 is None:

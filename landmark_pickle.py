@@ -23,7 +23,7 @@ def display_time(img, mu, dx=0):
 class LandmarkSaver:
 
     # length of record (in seconds)
-    record_length = 3
+    record_length = 10
 
     def begin_record(self):
         self.record_begin = time.time()
