@@ -9,12 +9,22 @@ def np_to_complex(arr, normalize=True):
         arr = (arr-arr.mean())/abs(arr[39]-arr[42]) # use the distance between the eyes as a reference
     return arr
 
+def normalized_to_complex(arr, normalize=True):
+    arr = np.array([arr[2*i] - 1j*arr[2*i+1] for i in range(len(arr)//2)])
+    if normalize:
+        arr = (arr-arr.mean())/abs(arr[39]-arr[42]) # use the distance between the eyes as a reference
+    return arr
+
 def ratio(c0,cn,c):
     """ compute where c is on the [c0,cn] segment """
     cn -= c0
     c -= c0
     return (c.real*cn.real+c.imag*cn.imag)/abs(cn)/abs(cn)
 
+def distance(c0,cn,c):
+    x = abs(c-c0)
+    y = abs(cn-c)
+    return y/(x+y)
 def mean_ratio(land1,land2,land):
     """ compute the mean ratio of land between land1 and land2 """
     return np.array([ratio(land1[j],land2[j],land[j]) for j in range(len(land))]).mean()
@@ -27,6 +37,9 @@ def lat_angle(land,m,M):
 
 def vert_angle(land,m,M):
     return (abs( (land[30]-land[27]).imag) - m)/(M-m)
+
+def left_eye(land,m,M):
+    return (abs( (land[47]+land[46]-land[43]-land[44]).imag) - m)/(M-m)
 
 if __name__ == "__main__":
     rec = load_landmark('turn')[0]
