@@ -53,9 +53,9 @@ class SoundManager:
     def get_mode(self):
         return self.modes[self.cur_mode]
 
-    def change_mode(self):
+    def change_mode(self, d=1):
         if not self.ready_for_record and not self.is_recording:
-            self.cur_mode = (self.cur_mode+1)%(len(self.modes))
+            self.cur_mode = (self.cur_mode+d)%(len(self.modes))
             return self.modes[self.cur_mode]
 
     def delete_cur_mode_soundtrack(self):

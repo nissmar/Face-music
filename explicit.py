@@ -3,10 +3,8 @@ import numpy as np
 from landmark_pickle import load_landmark
 
 
-def np_to_complex(arr, normalize=True):
+def np_to_complex(arr):
     arr = np.array([e[0] - 1j*e[1] for e in arr])
-    if normalize:
-        arr = (arr-arr.mean())/abs(arr[39]-arr[42]) # use the distance between the eyes as a reference
     return arr
 
 def normalized_to_complex(arr, normalize=True):
@@ -40,6 +38,14 @@ def vert_angle(land,m,M):
 
 def left_eye(land,m,M):
     return (abs( (land[47]+land[46]-land[43]-land[44]).imag) - m)/(M-m)
+
+def landmark_angle(land):
+    leye = sum(land[42:48])/6
+    reye = sum(land[36:42])/6
+    return np.angle(leye-reye)
+
+def rotate_landmark(land, angle):
+    return [e*np.exp(1j*angle) for e in land]
 
 if __name__ == "__main__":
     rec = load_landmark('turn')[0]

@@ -9,7 +9,7 @@ from tensorflow import keras
 from pickle import load
 
 from landmark_pickle import load_landmark, display_time
-from explicit import np_to_complex, mean_ratio, lat_angle,vert_angle, normalized_to_complex
+from explicit import np_to_complex, mean_ratio, lat_angle,vert_angle, normalized_to_complex, landmark_angle,rotate_landmark
 from landmark_processing import normalize_landmark
 import matplotlib.pyplot as plt
 #tensorflow model
@@ -110,11 +110,10 @@ while True:
     frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     landmark = detect_shape(nframe,frame)
-    normalized_landmark = normalize_landmark(landmark)
-    complex_landmark = normalized_to_complex(normalized_landmark)
-    complex_landmark = complex_landmark[18:27]
     if not(landmark is None):
-        
+        complex_landmark = np_to_complex(landmark)
+        angle = landmark_angle(complex_landmark)
+        normalized_landmark = normalize_landmark(rotate_landmark(complex_landmark,-angle))
         height, width, _ = frame.shape
 
         cv2.line(frame,(int(width/3), 0),(int(width/3), int(height)), (255, 0, 0))
@@ -136,7 +135,7 @@ while True:
         index = dist.index(min(dist))+3*dist2.index(min(dist2))
         # mult = [147,196,220,330,294,261][index] #pentatonic
         mult = [261.63,196.00,164.81,329.63,220.00,174.61][index] #pentatonic
-        
+        print(angle)
         if not(l2 is None): #the eyebrows have been calibrated
             brow = mean_ratio(l1,l2,complex_landmark)
             brow = min(max(brow,0),1)
@@ -173,7 +172,7 @@ while True:
     if key == ord("q"):
         wave = get_wave()
         print(len(wave))
-        plt.plot(np.concatenate(wave[-10:]))
+        # plt.plot(np.concatenate(wave[-10:]))
         break
     if key == ord('s'): # evaluate landmark with mouth and eyebrows svm
         x = evaluate_svm(normalize_landmark, svm_mouth)
@@ -190,7 +189,7 @@ while True:
         l1,l2 = None,None
    
 stream.stop()
-plt.show()
+# plt.show()
 
 # cleanup the camera and close any open windows
 vs.stop()

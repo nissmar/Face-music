@@ -12,6 +12,7 @@ def compute_diameter(landmark):
     return diameter
 
 def normalize_landmark(landmark, transform_info = False):
+    landmark = [[e.real, -e.imag] for e in landmark]
     n = len(landmark)
     barycenter = sum(np.array(landmark))/n
     diameter = compute_diameter(landmark)

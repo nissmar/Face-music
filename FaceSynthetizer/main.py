@@ -5,14 +5,17 @@ from imutils.video import VideoStream
 import pickle
 import imutils
 
-from landmark_processing import normalize_landmark
+from landmark_processing import detect_landmark, normalize_landmark, landmark_angle, np_to_complex
 from sound_manager import SoundManager
 
 
 # CONFIG
 MAX_ANGLE = 20
 THRESHOLD_UP = 0.65
-EYEBROW_THRESHOLD = 0.7
+THRESHOLD_YAW = 0.25
+SWITCHFRAME = 3 # wait between x frames to repeat order
+DEAD_REGION = 0.5
+EYEBROW_THRESHOLD = 0.48
 
 
 #SVM model
@@ -25,79 +28,112 @@ with open('tilt_svm.pickle','rb') as pickle_in:
 with open('pan_svm.pickle','rb') as pickle_in:
     svm_pan = pickle.load(pickle_in)
 
+def evaluate_svm(normalized_landmark, regr):
+    if landmark is None:
+        return 0
+    input = np.array([normalized_landmark])
+    return regr.predict(input)[0]
+
+
 manager = SoundManager()
 
-# states for note playing
-was_left = False
-was_up = False
-
+# Dlib
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_68.dat')
-
-def shape_to_np(shape, dtype="int"):
-    coords = np.zeros((68, 2), dtype=dtype)
-    for i in range(0, 68):
-        coords[i] = (shape.part(i).x, shape.part(i).y)
-    return coords
-    
-def detect_shape(img,outimg):
-    landmark = None
-    ratio = len(outimg)/len(img)
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) # convert to grayscale 
-    rects = detector(gray, 1) # rects contains all the faces detected
-    for (i, rect) in enumerate(rects):
-        shape = predictor(gray, rect)
-        landmark = shape_to_np(shape)
-        for i in range(len(landmark)):
-            x,y = landmark[i]
-            if (i in [7,8,9,21,22,31,35]):
-                cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 255, 0), -1)
-            else:
-                cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 0, 255), -1)
-    return landmark
 
 vs = VideoStream(src=0).start()
 
 
-def evaluate_svm(landmark, regr):
-    if landmark is None:
-        return 0
-    input = np.array([normalize_landmark(landmark)])
-    return regr.predict(input)[0]
+def current_region(x,y):
+    # 1       2
+    # DEAD_ZONE
+    # 3      4
+    if abs(x-0.5)+abs(y-0.5)<DEAD_REGION/2:
+        return 0 
+    if x>0.5:
+        return 4 if y>0.5 else 3
+    return 2 if y>0.5 else 1
+
+def draw_instrument(height, width):
+    h0 = int(height*(1-DEAD_REGION)/2)
+    h1 = int(height-height*(1-DEAD_REGION)/2)
+    w0 = int(width*(1-DEAD_REGION)/2)
+    w1 = int(width-width*(1-DEAD_REGION)/2)
+    wd = int(width/2)
+    hd = int(height/2)
+    height = int(height)
+    widht = int(width)
+
+    cv2.line(frame,(wd, 0),(wd, h0), (255, 0, 0))
+    cv2.line(frame,(wd, h1),(wd, height), (255, 0, 0))
+    cv2.line(frame,(0, hd),(w0, hd), (255, 0, 0))
+    cv2.line(frame,(w1, hd),(width, hd), (255, 0, 0))
+    
+    cv2.line(frame,(w0, hd),(wd, h0), (255, 0, 0))
+    cv2.line(frame,(wd, h0),(w1, hd), (255, 0, 0))
+    cv2.line(frame,(w1, hd),(wd, h1), (255, 0, 0))
+    cv2.line(frame,(wd, h1),(w0, hd), (255, 0, 0))
 
 
+
+
+# variables
+previous_region = 0
+was_next = 0
+was_prev = 0
+mouth_open = 0
 i=0
-
 while True:
     i+=1
     frame = vs.read()
     frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     height, width, _ = frame.shape
-    landmark = detect_shape(nframe,frame)
+    landmark = detect_landmark(cv2.cvtColor(nframe, cv2.COLOR_BGR2GRAY),frame,detector,predictor)
     if not(landmark is None):
-        cv2.line(frame,(int(width/2), 0),(int(width/2), int(height)), (255, 0, 0))
-        cv2.line(frame,(0,int(height*THRESHOLD_UP)),(int(width), int(height*THRESHOLD_UP)), (255, 0, 0))
-        tilt, pan = evaluate_svm(landmark, svm_tilt), evaluate_svm(landmark, svm_pan)
+        normalized_landmark = normalize_landmark(landmark)
+        complex_landmark = np_to_complex(landmark)
+        
+        draw_instrument(height, width)
+
+        tilt, pan = evaluate_svm(normalized_landmark, svm_tilt), evaluate_svm(normalized_landmark, svm_pan)
         tilt = 1-min(max((tilt+MAX_ANGLE)/2/MAX_ANGLE,0),1)
         pan = 1-min(max((pan+MAX_ANGLE)/2/MAX_ANGLE,0),1)
-
-        is_left = pan <= 0.5
-        is_up = tilt <= THRESHOLD_UP
-        
         cv2.circle(frame, (int(pan*width), int(tilt*height)), 10, (0, 255, 0), -1)
 
-        if was_left != is_left:
-            manager.play_note(is_left)
-        if (not is_up) and was_up:
-            manager.play_note(is_left)
-        was_left, was_up = is_left, is_up
+        # play note
+        region = current_region(tilt,pan)
+        if region != previous_region and region>0:
+            manager.play_note(region%2)
 
-    # detect eyebrows rise
-    eyebrows_level = evaluate_svm(landmark, svm_eyebrows)
-    if eyebrows_level > EYEBROW_THRESHOLD:
-        manager.change_notes()
+        # detect eyebrows rise
+        eyebrows_level = evaluate_svm(normalized_landmark, svm_eyebrows)
+        if eyebrows_level > EYEBROW_THRESHOLD:
+            manager.change_notes()
 
+        # detect mouth opening 
+        mouth_level = evaluate_svm(normalized_landmark, svm_mouth)
+        if mouth_level > 0.3 and mouth_open==0:
+            mouth_open = SWITCHFRAME
+            manager.record_key()
+            print('RECORDING')
+
+        # detect face Yaw, change instrument 
+        face_angle = landmark_angle(complex_landmark)
+        if face_angle>THRESHOLD_YAW and was_prev==0:
+            was_prev=SWITCHFRAME
+            manager.change_mode(-1)
+            print('Previous instrument')
+        if face_angle<-THRESHOLD_YAW and was_next==0:
+            was_next=SWITCHFRAME
+            manager.change_mode(1)
+            print('Next instrument')
+ 
+        # variables changes
+        previous_region = region
+        was_next = max(0,was_next-1)
+        was_prev = max(0,was_prev-1)
+        mouth_open = max(0,mouth_open-1)
     # refresh sound_manager
     mode, is_recording, ready_for_record = manager.loop()
 
@@ -128,7 +164,6 @@ while True:
         manager.play_note(False)
 
    
-stream.stop()
 # cleanup the camera and close any open windows
 vs.stop()
 cv2.destroyAllWindows()
