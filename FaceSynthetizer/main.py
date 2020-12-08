@@ -30,7 +30,6 @@ manager = SoundManager()
 # states for note playing
 was_left = False
 was_up = False
-ready_to_replay = False
 
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor('shape_68.dat')
@@ -90,12 +89,8 @@ while True:
 
         if was_left != is_left:
             manager.play_note(is_left)
-            ready_to_replay = False
-        if (not is_up) and ready_to_replay:
+        if (not is_up) and was_up:
             manager.play_note(is_left)
-            ready_to_replay = False
-        if (not was_up) and is_up:
-            ready_to_replay = True
         was_left, was_up = is_left, is_up
 
     # detect eyebrows rise
