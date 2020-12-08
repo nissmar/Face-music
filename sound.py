@@ -67,7 +67,7 @@ def callback(outdata, frames, time, status):
     # WAVE = sin_transition(FREQUENCY_PLAYING, FREQUENCY, frames)
     outdata[:] = mix(FREQUENCY_PLAYING, MIX_FAC, HARMONIC_FAC, frames)
 
-    WAVE = outdata
+    WAVE.append(outdata)
 
     FREQUENCY_PLAYING=adjust(FREQUENCY_PLAYING,FREQUENCY,100)
 
