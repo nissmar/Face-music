@@ -8,14 +8,18 @@ import imutils
 from landmark_processing import detect_landmark, normalize_landmark, landmark_angle, np_to_complex
 from sound_manager import SoundManager
 
+import sounddevice as sd
+from fluid_manager import callback, set_freq, set_mix,set_harmonic
+
 
 # CONFIG
 MAX_ANGLE = 20
 THRESHOLD_UP = 0.65
 THRESHOLD_YAW = 0.25
 SWITCHFRAME = 3 # wait between x frames to repeat order
-DEAD_REGION = 0.5
+DEAD_REGION = 0.3
 EYEBROW_THRESHOLD = 0.48
+MODE = "SYNTH" # SYNTH ou FLUID
 
 
 #SVM model
@@ -54,86 +58,126 @@ def current_region(x,y):
         return 4 if y>0.5 else 3
     return 2 if y>0.5 else 1
 
-def draw_instrument(height, width):
-    h0 = int(height*(1-DEAD_REGION)/2)
-    h1 = int(height-height*(1-DEAD_REGION)/2)
-    w0 = int(width*(1-DEAD_REGION)/2)
-    w1 = int(width-width*(1-DEAD_REGION)/2)
-    wd = int(width/2)
-    hd = int(height/2)
-    height = int(height)
-    widht = int(width)
-
-    cv2.line(frame,(wd, 0),(wd, h0), (255, 0, 0))
-    cv2.line(frame,(wd, h1),(wd, height), (255, 0, 0))
-    cv2.line(frame,(0, hd),(w0, hd), (255, 0, 0))
-    cv2.line(frame,(w1, hd),(width, hd), (255, 0, 0))
+def draw_synth(height, off):
+    w0 = int(height*(1-DEAD_REGION)/2)
+    w1 = int(height-height*(1-DEAD_REGION)/2)
+    wd = int(height/2)
     
-    cv2.line(frame,(w0, hd),(wd, h0), (255, 0, 0))
-    cv2.line(frame,(wd, h0),(w1, hd), (255, 0, 0))
-    cv2.line(frame,(w1, hd),(wd, h1), (255, 0, 0))
-    cv2.line(frame,(wd, h1),(w0, hd), (255, 0, 0))
+    height = int(height)
+    off = int(off)
 
+    cv2.line(frame,(off, 0),(off, height), (255, 0, 0))
+    cv2.line(frame,(height+off, 0),(height+off, height), (255, 0, 0))
+
+    cv2.line(frame,(wd+off, 0),(wd+off, w0), (255, 0, 0))
+    cv2.line(frame,(wd+off, w1),(wd+off, height), (255, 0, 0))
+    cv2.line(frame,(off, wd),(w0+off, wd), (255, 0, 0))
+    cv2.line(frame,(w1+off, wd),(height+off, wd), (255, 0, 0))
+
+    cv2.circle(frame,(wd+off,wd), int(w1-w0)//2, (255,0,0))
 
 
 
 # variables
 previous_region = 0
-was_next = 0
-was_prev = 0
-mouth_open = 0
+previous_angle = 0 #0 =no 1= right 2 = left 3=switch
+face_angle = 0
+fluid_initialized=False
+mouth_opened = False
 i=0
+
+# fluid
+stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
+
 while True:
     i+=1
     frame = vs.read()
     frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     height, width, _ = frame.shape
+    offset = (width-height)/2
     landmark = detect_landmark(cv2.cvtColor(nframe, cv2.COLOR_BGR2GRAY),frame,detector,predictor)
     if not(landmark is None):
         normalized_landmark = normalize_landmark(landmark)
         complex_landmark = np_to_complex(landmark)
         
-        draw_instrument(height, width)
-
         tilt, pan = evaluate_svm(normalized_landmark, svm_tilt), evaluate_svm(normalized_landmark, svm_pan)
         tilt = 1-min(max((tilt+MAX_ANGLE)/2/MAX_ANGLE,0),1)
         pan = 1-min(max((pan+MAX_ANGLE)/2/MAX_ANGLE,0),1)
-        cv2.circle(frame, (int(pan*width), int(tilt*height)), 10, (0, 255, 0), -1)
-
-        # play note
-        region = current_region(tilt,pan)
-        if region != previous_region and region>0:
-            manager.play_note(region%2)
-
-        # detect eyebrows rise
-        eyebrows_level = evaluate_svm(normalized_landmark, svm_eyebrows)
-        if eyebrows_level > EYEBROW_THRESHOLD:
-            manager.change_notes()
-
-        # detect mouth opening 
-        mouth_level = evaluate_svm(normalized_landmark, svm_mouth)
-        if mouth_level > 0.3 and mouth_open==0:
-            mouth_open = SWITCHFRAME
-            manager.record_key()
-            print('RECORDING')
 
         # detect face Yaw, change instrument 
-        face_angle = landmark_angle(complex_landmark)
-        if face_angle>THRESHOLD_YAW and was_prev==0:
-            was_prev=SWITCHFRAME
-            manager.change_mode(-1)
-            print('Previous instrument')
-        if face_angle<-THRESHOLD_YAW and was_next==0:
-            was_next=SWITCHFRAME
-            manager.change_mode(1)
-            print('Next instrument')
- 
-        # variables changes
-        previous_region = region
-        was_next = max(0,was_next-1)
-        was_prev = max(0,was_prev-1)
-        mouth_open = max(0,mouth_open-1)
+        x = landmark_angle(complex_landmark)
+        if x>THRESHOLD_YAW:
+            face_angle=1
+        elif x<-THRESHOLD_YAW:
+            face_angle=2
+        else:
+            face_angle=0
+
+        eyebrows_level = evaluate_svm(normalized_landmark, svm_eyebrows)
+
+        mouth_level = evaluate_svm(normalized_landmark, svm_mouth)
+
+
+        if MODE=="SYNTH":
+            draw_synth(height, offset)
+            cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
+
+            # detect face Yaw, change instrument 
+            if face_angle==1 and previous_angle==0:
+                manager.change_mode(-1)
+                print('Previous instrument')
+                # MODE = "FLUID"
+            elif face_angle==2 and previous_angle==0:
+                manager.change_mode(1)
+                print('Next instrument')
+
+            # play note
+            region = current_region(tilt,pan)
+            if region != previous_region and region>0:
+                manager.play_note(region%2)
+            previous_region = region
+
+            # detect mouth opening 
+            if mouth_level > 0.3 and face_angle<0.17:
+                if not(mouth_opened):
+                    mouth_opened=True
+                    manager.record_key()
+                    print('RECORDING')
+            else:
+                mouth_opened=False
+        
+            # detect eyebrows rise
+            if eyebrows_level > EYEBROW_THRESHOLD and not(mouth_opened):
+                manager.change_notes()
+
+
+        else:
+            cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
+
+            if face_angle==0 and not(fluid_initialized): #initialize fluid
+                fluid_initialized = True
+                stream.start()
+            if fluid_initialized:
+
+                # switch mode if head is angled
+                if face_angle>0 and previous_angle==0:
+                    stream.stop()
+                    MODE = "SYNTH"
+
+                set_freq(220*(1+0.5*pan))
+
+                set_mix(mouth_level*0.5)
+
+                set_harmonic(tilt)
+
+
+
+
+
+    
+    previous_angle = face_angle
+
     # refresh sound_manager
     mode, is_recording, ready_for_record = manager.loop()
 

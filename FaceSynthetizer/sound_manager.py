@@ -8,7 +8,7 @@ from math import ceil
 MINIMUM_TIME_BEFORE_RECORD_START = 1 
 
 class SoundManager:
-    modes = ['Piano', 'Drums', 'ElecGuitar']
+    modes = ['Piano', 'Drums', 'ElecGuitar','Orgue']
     modes_sounds = [["",""] for _ in range(len(modes))]
     cur_mode = 0
 

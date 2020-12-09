@@ -96,16 +96,19 @@ def get_wave():
    return WAVE
 
 # interaction
-if __name__ == "__main__":
-    MIX_FAC = 0.5
+# if __name__ == "__main__":
+#     MIX_FAC = 0.5
 
-    stream = sd.OutputStream(channels=1, callback=callback,blocksize=0)
-    stream.start()
+#     stream = sd.OutputStream(channels=1, callback=callback,blocksize=0)
+#     stream.start()
 
-    fig, ax = plt.subplots()
-    cid = fig.canvas.mpl_connect('button_press_event', onclick)
-    plt.show()
-    stream.stop()
+#     fig, ax = plt.subplots()
+#     cid = fig.canvas.mpl_connect('button_press_event', onclick)
+#     plt.show()
+#     stream.stop()
+#     plt.plot(np.concatenate(WAVE[-3:]),'-')
+
+#     plt.show()
 
 # frames = 100
 # L=[]
