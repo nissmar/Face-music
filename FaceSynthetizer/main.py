@@ -14,6 +14,7 @@ from fluid_manager import callback, set_freq, set_mix,set_harmonic
 
 # CONFIG
 MAX_ANGLE = 20
+THRESHOLD_MOUTH = 0.8
 THRESHOLD_UP = 0.65
 THRESHOLD_YAW = 0.4
 SWITCHFRAME = 3 # wait between x frames to repeat order
@@ -83,7 +84,7 @@ def display_measure(img, mu):
     
     cv2.rectangle(img, (x1,y1), (x2,y2), (0,0,255), 1)
     x1,y1,x2,y2 = x1+1,y1+1,int(x1+mu*(x2-x1-2)),y2-1
-    cv2.rectangle(img,(x1,y1), (x2,y2),(255,255,255), -1)
+    cv2.rectangle(img,(x1,y1), (x2,y2),(255,0,0), -1)
 
 def display_number_of_records(img, n):
     """Display number of records for current mode"""
@@ -155,7 +156,7 @@ while True:
             previous_region = region
 
             # detect mouth opening 
-            if mouth_level > 0.3 and face_angle<0.17:
+            if mouth_level > THRESHOLD_MOUTH and face_angle<0.17:
                 if not(mouth_opened):
                     mouth_opened=True
                     manager.record_key()
@@ -163,8 +164,10 @@ while True:
                 mouth_opened=False
         
             # detect eyebrows rise
+            """
             if eyebrows_level > EYEBROW_THRESHOLD and not(mouth_opened):
                 manager.delete_cur_mode_last_record()
+            """
 
         else:
             cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
