@@ -15,10 +15,10 @@ from fluid_manager import callback, set_freq, set_mix,set_harmonic
 # CONFIG
 MAX_ANGLE = 20
 THRESHOLD_UP = 0.65
-THRESHOLD_YAW = 0.25
+THRESHOLD_YAW = 0.4
 SWITCHFRAME = 3 # wait between x frames to repeat order
-DEAD_REGION = 0.3
-EYEBROW_THRESHOLD = 0.48
+DEAD_REGION = 0.4
+EYEBROW_THRESHOLD = 0.6
 MODE = "SYNTH" # SYNTH ou FLUID
 
 
@@ -76,6 +76,24 @@ def draw_synth(height, off):
 
     cv2.circle(frame,(wd+off,wd), int(w1-w0)//2, (255,0,0))
 
+def display_measure(img, mu):
+    """Display position in measure as a slider. mu in [0,1]"""
+    width = img.shape[1]
+    x1,x2,y1,y2 = width-100,width-20,60,90
+    
+    cv2.rectangle(img, (x1,y1), (x2,y2), (0,0,255), 1)
+    x1,y1,x2,y2 = x1+1,y1+1,int(x1+mu*(x2-x1-2)),y2-1
+    cv2.rectangle(img,(x1,y1), (x2,y2),(255,255,255), -1)
+
+def display_number_of_records(img, n):
+    """Display number of records for current mode"""
+    width = img.shape[1]
+    radius = 5
+    x,y = width-100+radius,110
+    for _ in range(n):
+        cv2.circle(img, (x,y), radius, (255,0,0), -1)
+        x += 3*radius
+
 
 
 # variables
@@ -126,16 +144,14 @@ while True:
             # detect face Yaw, change instrument 
             if face_angle==1 and previous_angle==0:
                 manager.change_mode(-1)
-                print('Previous instrument')
                 # MODE = "FLUID"
             elif face_angle==2 and previous_angle==0:
                 manager.change_mode(1)
-                print('Next instrument')
 
             # play note
             region = current_region(tilt,pan)
             if region != previous_region and region>0:
-                manager.play_note(region%2)
+                manager.play_note(region-1)
             previous_region = region
 
             # detect mouth opening 
@@ -143,14 +159,12 @@ while True:
                 if not(mouth_opened):
                     mouth_opened=True
                     manager.record_key()
-                    print('RECORDING')
             else:
                 mouth_opened=False
         
             # detect eyebrows rise
             if eyebrows_level > EYEBROW_THRESHOLD and not(mouth_opened):
-                manager.change_notes()
-
+                manager.delete_cur_mode_last_record()
 
         else:
             cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
@@ -179,16 +193,23 @@ while True:
     previous_angle = face_angle
 
     # refresh sound_manager
-    mode, is_recording, ready_for_record = manager.loop()
+    mode, number_of_records, is_recording, ready_for_record, pos_in_measure = manager.loop()
 
     # display mode
     cv2.putText(frame, mode, (width - 100, 35), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.5, color = (255,0,0), thickness = 2)
+
+    # display number of records for current mode
+    display_number_of_records(frame, number_of_records)
 
     # show if recording with a green/red circle
     color = [(0,0,255),(0,165,255),(0,255,0)][2*is_recording+ready_for_record]
     text = ['Not recording','Ready for record','Recording'][2*is_recording+ready_for_record]
     cv2.circle(frame, (30,30), 20, color, -1)
     cv2.putText(frame, text, (60,35), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.5, color = color, thickness = 2)
+
+    # display measure slider
+    if pos_in_measure > 0:
+        display_measure(frame, pos_in_measure)
 
     cv2.imshow('Face music', frame)
 
@@ -200,7 +221,7 @@ while True:
     if key == ord(' '):
         manager.record_key()
     if key == ord('d'):
-        manager.delete_cur_mode_soundtrack()
+        manager.delete_cur_mode_last_record()
     # keys to simulate notes
     if key == ord('a'):
         manager.play_note(True)
