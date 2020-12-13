@@ -9,7 +9,7 @@ MINIMUM_TIME_BEFORE_RECORD_START = 1
 NUMBER_OF_NOTES = 4
 
 class SoundManager:
-    modes = ['Piano', 'Drums', 'ElecGuitar','Orgue']
+    modes = ['Piano', 'Drums', 'ElecGuitar','Orgue', 'Woodwinds']
     modes_sounds = [["",""] for _ in range(len(modes))]
     cur_mode = 0
 
@@ -33,7 +33,7 @@ class SoundManager:
             mode_name = self.modes[mode]
             sounds_files = list(filter(lambda x: x[-4:]=='.wav',os.listdir(f'notes/{mode_name}'))) #filter out non .wav formats
             sounds_files = [f'notes/{mode_name}/{x}' for x in sounds_files]
-            self.modes_sounds[mode] = sounds_files[:NUMBER_OF_NOTES]
+            self.modes_sounds[mode] = sample(sounds_files, NUMBER_OF_NOTES)
         self.reset_soundtrack()
 
     def echo_soundtrack(self):
@@ -49,8 +49,7 @@ class SoundManager:
         mode = self.cur_mode
         mode_name = self.modes[mode]
         print('Changing notes for', mode_name, '!')
-        sounds_files = list(map(lambda x: f'notes/{mode_name}/{x}.wav',os.listdir(f'notes/{mode_name}')))
-        print(sounds_files)
+        sounds_files = sounds_files = list(filter(lambda x: x[-4:]=='.wav',os.listdir(f'notes/{mode_name}')))
         self.modes_sounds[mode] = sample(sounds_files, NUMBER_OF_NOTES)
 
     def get_mode(self):
