@@ -14,12 +14,11 @@ from fluid_manager import callback, set_freq, set_mix,set_harmonic
 
 # CONFIG
 MAX_ANGLE = 20
-THRESHOLD_MOUTH = 0.8
-THRESHOLD_UP = 0.65
-THRESHOLD_YAW = 0.4
-SWITCHFRAME = 3 # wait between x frames to repeat order
-DEAD_REGION = 0.4
+THRESHOLD_MOUTH = 0.68
+THRESHOLD_YAW = 0.35
+DEAD_REGION = 0.3
 EYEBROW_THRESHOLD = 0.6
+IS_CALIBRATING = 0
 MODE = "SYNTH" # SYNTH ou FLUID
 
 
@@ -96,11 +95,32 @@ def display_number_of_records(img, n):
         x += 3*radius
 
 
+def calibrate(mouth_level,eyebrows_level, frame):
+    global IS_CALIBRATING, EYEBROW_THRESHOLD, THRESHOLD_MOUTH
+
+    text = ['Calibrating', 'Calibrating Mouth','Calibrating eyebrows','Done'][IS_CALIBRATING-1]
+    cv2.putText(frame, text, (60,70), fontFace = cv2.FONT_HERSHEY_SIMPLEX, fontScale = 0.5, color = color, thickness = 2)
+    if IS_CALIBRATING==1:
+        print('CALIBRATING...')
+        THRESHOLD_MOUTH = 0
+        EYEBROW_THRESHOLD = 0
+        IS_CALIBRATING+=1
+    elif IS_CALIBRATING==2:
+        THRESHOLD_MOUTH = max(THRESHOLD_MOUTH,0.9*mouth_level)
+    elif IS_CALIBRATING==3:
+        EYEBROW_THRESHOLD = max(EYEBROW_THRESHOLD,0.95*eyebrows_level)
+    elif IS_CALIBRATING==4:
+        print(' mouth level:',THRESHOLD_MOUTH)
+        print(' eyebrows level:',EYEBROW_THRESHOLD)
+        print('  ...DONE')
+        IS_CALIBRATING = 0
+
 
 # variables
 previous_region = 0
 previous_angle = 0 #0 =no 1= right 2 = left 3=switch
 face_angle = 0
+brows_raised = False
 fluid_initialized=False
 mouth_opened = False
 i=0
@@ -137,8 +157,9 @@ while True:
 
         mouth_level = evaluate_svm(normalized_landmark, svm_mouth)
 
-
-        if MODE=="SYNTH":
+        if IS_CALIBRATING>0:
+            calibrate(mouth_level, eyebrows_level, frame)
+        elif MODE=="SYNTH":
             draw_synth(height, offset)
             cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
 
@@ -156,7 +177,7 @@ while True:
             previous_region = region
 
             # detect mouth opening 
-            if mouth_level > THRESHOLD_MOUTH and face_angle<0.17:
+            if mouth_level > THRESHOLD_MOUTH and face_angle==0:
                 if not(mouth_opened):
                     mouth_opened=True
                     manager.record_key()
@@ -164,10 +185,11 @@ while True:
                 mouth_opened=False
         
             # detect eyebrows rise
-            """
-            if eyebrows_level > EYEBROW_THRESHOLD and not(mouth_opened):
+            if eyebrows_level > EYEBROW_THRESHOLD and not(mouth_level>0.5*THRESHOLD_MOUTH) and region==0 and not(brows_raised):
                 manager.delete_cur_mode_last_record()
-            """
+                brows_raised = True
+            else:
+                brows_raised = False
 
         else:
             cv2.circle(frame, (int(pan*height+offset), int(tilt*height)), 10, (0, 255, 0), -1)
@@ -219,6 +241,8 @@ while True:
     key = cv2.waitKey(100) & 0xFF
     if key == ord("q"):
         break
+    if key == ord('c'): # to calibrate
+        IS_CALIBRATING+=1
     if key == ord("m"):
         manager.change_mode()
     if key == ord(' '):
