@@ -31,8 +31,9 @@ class SoundManager:
     def __init__(self):
         for mode in range(len(self.modes)):
             mode_name = self.modes[mode]
-            sounds_files = list(map(lambda x: f'notes/{mode_name}/{x}',os.listdir(f'notes/{mode_name}')))
-            self.modes_sounds[mode] = sample(sounds_files, NUMBER_OF_NOTES)
+            sounds_files = list(filter(lambda x: x[-4:]=='.wav',os.listdir(f'notes/{mode_name}'))) #filter out non .wav formats
+            sounds_files = [f'notes/{mode_name}/{x}' for x in sounds_files]
+            self.modes_sounds[mode] = sounds_files[:NUMBER_OF_NOTES]
         self.reset_soundtrack()
 
     def echo_soundtrack(self):
@@ -48,7 +49,8 @@ class SoundManager:
         mode = self.cur_mode
         mode_name = self.modes[mode]
         print('Changing notes for', mode_name, '!')
-        sounds_files = list(map(lambda x: f'notes/{mode_name}/{x}',os.listdir(f'notes/{mode_name}')))
+        sounds_files = list(map(lambda x: f'notes/{mode_name}/{x}.wav',os.listdir(f'notes/{mode_name}')))
+        print(sounds_files)
         self.modes_sounds[mode] = sample(sounds_files, NUMBER_OF_NOTES)
 
     def get_mode(self):
