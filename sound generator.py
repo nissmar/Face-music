@@ -56,7 +56,7 @@ def good1(freq,frames,samplerate=SAMPLERATE):
     wave2 = triangle(freq,frames)/2
     return env*wave +env2*wave2
 
-def good1_chord(freq,frames,samplerate=SAMPLERATE):
+def SineTri(freq,frames,samplerate=SAMPLERATE):
     return good1(freq,frames)+good1(freq*1.5,frames)+good1(freq*2,frames)/3+good1(2*freq*1.5,frames) 
 
 
@@ -67,34 +67,68 @@ def good2(freq,frames,samplerate=SAMPLERATE):
     return env*(wave+wave2)
 
 
-def good2_chord(freq,frames,samplerate=SAMPLERATE):
+def ModernChurch(freq,frames,samplerate=SAMPLERATE):
     return good2(freq,frames)+good2(freq*1.5,frames)+good2(freq*2,frames)/3+good2(2*freq*1.5,frames) 
 
 
-def kick(freq,frames,samplerate=SAMPLERATE):
-    return 200*sin_n(freq,frames)*envelope(0.1,frames)**5
+
+def Osc(freq,frames,samplerate=SAMPLERATE):
+    env = envelope(1,frames)**0.5
+    wave = sin_n(freq,frames)+2*sin_n(freq*2,frames)+2*sin_n(freq*3,frames)+10*triangle(freq*4,frames)+sin_n(freq*5,frames)
+    return env*wave
+
+
+def CryBaby(freq,frames,samplerate=SAMPLERATE):
+    env = envelope(1,frames)**0.5
+    f1 = freq*(0.9 +sin_n(0.6,frames)/3.0)
+    f2 = freq*(0.9 +sin_n(0.3,frames)/3.0)
+    wave = sin_n(f1,frames)+sin_n(2*f2,frames)+sin_n(3*f1,frames)
+    return env*wave
+
+def kick(freq,frames,x=0.1,samplerate=SAMPLERATE):
+    return sin_n(freq,frames)*envelope(x,frames)**10
 
 def bongo(freq,frames,samplerate=SAMPLERATE):
-    return kick(freq,frames)+kick(2*freq,frames)/1.5+kick(3*freq,frames)/2
+    x=0.08
+    return kick(freq,frames,x)+kick(freq+40,frames,x)+kick(freq+80,frames,x)/4+kick(freq,frames,0.2)
 
-def snare(freq,frames,samplerate=SAMPLERATE):
-    return sin_n(freq,frames)*envelope(0.2,frames)
+def bell(freq,frames,samplerate=SAMPLERATE):
+    x=0.08
+    base = kick(freq,frames,x)+kick(freq+40,frames,x)
+    env = envelope(0.3,frames)
+    high = sin_n(2*freq,frames)*env**3+sin_n(3*freq,frames)*env+sin_n(4*freq,frames)*env**0.5
+    return base+high
 
+
+def rec(func,frames,freqs):
+    i=0
+    for f in freqs:
+        wave = func(f,frames)
+        wave = wave/max(wave)
+        sf.write('output'+str(i)+'.wav', wave, SAMPLERATE)
+        i+=1
+
+INDEX=0
 def onclick(event):
+    global INDEX
+
     frames = 20000
     x = min(16*event.x/frames,2)
     y = min(event.y/800,1)
-    wave = (snare(330,frames)+snare(180,frames)+snare(440,frames))
-    freqs=[293.66, 392,493.88,587.33]
-    for i in range(4):
-        wave=good1_chord(freqs[i],frames)
-        wave=wave/max(wave)
-        plt.clf()
-        plt.plot(wave)
-        plt.draw()
-        sd.play(wave)
-        sf.write('output'+str(i)+'.wav', wave, SAMPLERATE)
-
+    freqs=[293.66, 392,493.88,587.33] 
+    # freqs=[98,123.47,146.83,174.61]
+    # freqs=[32.7,41.20,49,65.41]
+    rec(bell,frames,[f for f in freqs])
+    wave=bell(freqs[INDEX]*1.5,frames)
+    wave=wave/max(wave)
+    # sf.write('output'+str(0)+'.wav', wave, SAMPLERATE)
+    plt.clf()
+    plt.plot(wave)
+    plt.draw()
+    sd.play(wave)
+    # sf.write('output'+str(i)+'.wav', wave, SAMPLERATE)
+    INDEX+=1
+    INDEX=INDEX%4
  
 # interaction
 if __name__ == "__main__":

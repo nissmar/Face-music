@@ -9,7 +9,7 @@ MINIMUM_TIME_BEFORE_RECORD_START = 1
 NUMBER_OF_NOTES = 4
 
 class SoundManager:
-    modes = ['custom','Piano', 'Drums', 'ElecGuitar','Orgue', 'Woodwinds']
+    modes = ['SineTri','ModernChurch','HighOsc','LowOsc','CryBaby','Bongo', 'Bell']
     modes_sounds = [["",""] for _ in range(len(modes))]
     cur_mode = 0
 
