@@ -52,7 +52,7 @@ def current_region(x,y):
     # 1       2
     # DEAD_ZONE
     # 3      4
-    if abs(x-0.5)+abs(y-0.5)<DEAD_REGION/2:
+    if (x-0.5)**2+(y-0.5)**2<(DEAD_REGION/2)**2:
         return 0 
     if x>0.5:
         return 4 if y>0.5 else 3

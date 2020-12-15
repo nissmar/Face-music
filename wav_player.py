@@ -12,7 +12,8 @@ channel_note = mixer.Channel(0)
 channel_soundtrack = mixer.Channel(1)
 
 def build_soundtrack_file(soundtrack):
-    delayed = [AudioSegment.silent(duration=1000*offset) + AudioSegment.from_wav(file_name) for file_name,offset in soundtrack['sounds']]
+    n = len(soundtrack['sounds'])
+    delayed = [AudioSegment.silent(duration=1000*offset) + AudioSegment.from_wav(file_name)-0.3*n for file_name,offset in soundtrack['sounds']]
     normalized = [AudioSegment.silent(duration=1000*soundtrack['length']).overlay(sound) for sound in delayed]
     resulting_sound = normalized[0]
     for sound in normalized[1:]:
