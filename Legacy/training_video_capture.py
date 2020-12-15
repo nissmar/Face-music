@@ -15,11 +15,11 @@ from landmark_processing import normalize_landmark
 #tensorflow model
 dnn_model = keras.models.load_model('mouth_model')
 #SVM model
-with open('mouth_svm.pickle','rb') as pickle_in:
+with open('svm/mouth_svm.pickle','rb') as pickle_in:
     svm_regr = load(pickle_in)
-with open('tilt_svm.pickle','rb') as pickle_in:
+with open('svm/tilt_svm.pickle','rb') as pickle_in:
     svm_tilt = load(pickle_in)
-with open('pan_svm.pickle','rb') as pickle_in:
+with open('svm/pan_svm.pickle','rb') as pickle_in:
     svm_pan = load(pickle_in)
 
 

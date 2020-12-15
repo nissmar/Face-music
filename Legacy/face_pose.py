@@ -73,27 +73,20 @@ def pickle_out_pose():
     with open(f"data/HeadPoseImageDatabase/landmarks_pose2.pickle", 'wb') as pickle_out:
         pickle.dump([landmarks,tilts,pans,persons], pickle_out)
 
-with open('data/HeadPoseImageDatabase/landmarks_pose.pickle', 'rb') as pickle_in:
-    data = pickle.load(pickle_in)
-
-landmarks,tilts,pans,persons = data
-landmarks = [normalize_landmark(e) for e in landmarks]
-
-
 def picke_out_reg(landmarks,tilts,pans):
     regr = svm.SVR()
     regr.fit(landmarks,tilts)
-    with open('tilt_svm.pickle','wb') as pickle_out:
+    with open('svm/tilt_svm.pickle','wb') as pickle_out:
         pickle.dump(regr, pickle_out)
     regr = svm.SVR()
     regr.fit(landmarks,pans)
-    with open('pan_svm.pickle','wb') as pickle_out:
+    with open('svm/pan_svm.pickle','wb') as pickle_out:
         pickle.dump(regr, pickle_out)
 
 
-with open('tilt_svm.pickle','rb') as pickle_in:
+with open('svm/tilt_svm.pickle','rb') as pickle_in:
     svm_tilt = pickle.load(pickle_in)
-with open('pan_svm.pickle','rb') as pickle_in:
+with open('svm/pan_svm.pickle','rb') as pickle_in:
     svm_pan = pickle.load(pickle_in)
  
 def test_SVR(landmarks,labels,svm):
@@ -102,5 +95,13 @@ def test_SVR(landmarks,labels,svm):
     N = len(true_labels)
     return sum(list(map(lambda x: abs(x), list(true_labels-predicted_labels))))/N
 
-print(test_SVR(landmarks,tilts,svm_tilt))
-print(test_SVR(landmarks,pans,svm_pan))
+
+with open('data/HeadPoseImageDatabase/landmarks_pose.pickle', 'rb') as pickle_in:
+    data = pickle.load(pickle_in)
+
+landmarks,tilts,pans,persons = data
+print(landmarks[-1])
+landmarks = [normalize_landmark(e) for e in landmarks]
+
+# print(test_SVR(landmarks,tilts,svm_tilt))
+# print(test_SVR(landmarks,pans,svm_pan))
