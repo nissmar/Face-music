@@ -9,17 +9,17 @@ from tensorflow import keras
 from pickle import load
 
 from landmark_pickle import LandmarkSaver, load_landmark, display_time
-from explicitely_killing_hugo import np_to_complex, mean_ratio, lat_angle,vert_angle
+from explicit import np_to_complex, mean_ratio, lat_angle,vert_angle
 from landmark_processing import normalize_landmark
 
 #tensorflow model
 dnn_model = keras.models.load_model('mouth_model')
 #SVM model
-with open('svm/mouth_svm.pickle','rb') as pickle_in:
+with open('../svm/mouth_svm.pickle','rb') as pickle_in:
     svm_regr = load(pickle_in)
-with open('svm/tilt_svm.pickle','rb') as pickle_in:
+with open('../svm/tilt_svm.pickle','rb') as pickle_in:
     svm_tilt = load(pickle_in)
-with open('svm/pan_svm.pickle','rb') as pickle_in:
+with open('../svm/pan_svm.pickle','rb') as pickle_in:
     svm_pan = load(pickle_in)
 
 

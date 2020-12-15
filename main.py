@@ -4,6 +4,7 @@ import numpy as np
 from imutils.video import VideoStream
 import pickle
 import imutils
+from time import time
 
 from landmark_processing import detect_landmark, normalize_landmark, landmark_angle, np_to_complex
 from sound_manager import SoundManager
@@ -128,18 +129,23 @@ i=0
 # fluid
 stream = sd.OutputStream(channels=1, callback=callback,blocksize=1500)
 
+frames=[time()]
+compute = []
 while True:
+    frames.append(time())
     i+=1
     frame = vs.read()
     frame = cv2.flip(frame,1)
     nframe = imutils.resize(frame, width=400)
     height, width, _ = frame.shape
     offset = (width-height)/2
+    t0 = time()
     landmark = detect_landmark(cv2.cvtColor(nframe, cv2.COLOR_BGR2GRAY),frame,detector,predictor)
+    compute.append(time()-t0)
+
     if not(landmark is None):
         normalized_landmark = normalize_landmark(landmark)
         complex_landmark = np_to_complex(landmark)
-        
         tilt, pan = evaluate_svm(normalized_landmark, svm_tilt), evaluate_svm(normalized_landmark, svm_pan)
         tilt = 1-min(max((tilt+MAX_ANGLE)/2/MAX_ANGLE,0),1)
         pan = 1-min(max((pan+MAX_ANGLE)/2/MAX_ANGLE,0),1)
@@ -259,3 +265,6 @@ while True:
 # cleanup the camera and close any open windows
 vs.stop()
 cv2.destroyAllWindows()
+
+# print(compute)
+# print([frames[i+1]-frames[i] for i in range(len(frames)-1)])
