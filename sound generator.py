@@ -67,12 +67,12 @@ def good2(freq,frames,samplerate=SAMPLERATE):
     return env*(wave+wave2)
 
 
-def ModernChurch(freq,frames,samplerate=SAMPLERATE):
+def Osc(freq,frames,samplerate=SAMPLERATE):
     return good2(freq,frames)+good2(freq*1.5,frames)+good2(freq*2,frames)/3+good2(2*freq*1.5,frames) 
 
 
 
-def Osc(freq,frames,samplerate=SAMPLERATE):
+def ModernChurch(freq,frames,samplerate=SAMPLERATE):
     env = envelope(1,frames)**0.5
     wave = sin_n(freq,frames)+2*sin_n(freq*2,frames)+2*sin_n(freq*3,frames)+10*triangle(freq*4,frames)+sin_n(freq*5,frames)
     return env*wave
@@ -119,7 +119,7 @@ def onclick(event):
     # freqs=[98,123.47,146.83,174.61]
     # freqs=[32.7,41.20,49,65.41]
     rec(bell,frames,[f for f in freqs])
-    wave=bell(freqs[INDEX]*1.5,frames)
+    wave=Osc(freqs[INDEX]*1.5,frames)
     wave=wave/max(wave)
     # sf.write('output'+str(0)+'.wav', wave, SAMPLERATE)
     plt.clf()
@@ -132,21 +132,32 @@ def onclick(event):
  
 # interaction
 if __name__ == "__main__":
-    fig, ax = plt.subplots()
-    cid = fig.canvas.mpl_connect('button_press_event', onclick)
-    plt.show()
-
-    # frames = 100000
-    # L=[]
-    # func = sin_n
-    # f1 = 800
-    # f2 =1600
-    # PHASE = 0
-
-    # # plt.plot(envelope(0.2,frames))
-    # # plt.plot(envelope(0.8,frames))
-    # # plt.plot(envelope(1.2,frames))
-    # # plt.plot(sin_n(400,frames))
-    # # plt.plot(sin_transition(400,800,frames))
-    # # plt.plot(triangle(400,frames))
+    # fig, ax = plt.subplots()
+    # cid = fig.canvas.mpl_connect('button_press_event', onclick)
     # plt.show()
+
+    frames = 200000
+    freq = 400
+    env = envelope(1.4,frames)**2
+    env2 = envelope(0.2,frames)
+    wave = sin_n(freq,frames)
+    wave2 = triangle(freq,frames)/2
+    # envelopes
+    line1 = plt.plot(envelope(0.3,frames), label="x=0.3, n=1")
+    # plt.legend(handles=line1)
+
+    line2 =plt.plot(envelope(1.4,frames), label="x=1.4, n=1")
+    # plt.legend(handles=line2)
+
+    line3 =plt.plot(envelope(1.4,frames)**5, label="x=1.4, n=5")
+    plt.legend(loc='lower right')
+
+    # waves
+    # plt.plot(sin_n(freq,frames))
+    # plt.plot(triangle(freq,frames))
+    # plt.plot(square(freq,frames))
+
+    # example
+
+    # plt.plot(Osc(200,frames))
+    plt.show()

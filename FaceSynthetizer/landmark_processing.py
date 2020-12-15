@@ -19,10 +19,7 @@ def detect_landmark(gray,outimg,detector,predictor):
         landmark = shape_to_np(shape)
         for i in range(len(landmark)):
             x,y = landmark[i]
-            if (i in [7,8,9,21,22,31,35]):
-                cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 255, 0), -1)
-            else:
-                cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 0, 255), -1)
+            cv2.circle(outimg, (int(x*ratio), int(y*ratio)), 2, (0, 255, 0), -1)
     return landmark
 
 def compute_diameter(landmark):
