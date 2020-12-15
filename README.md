@@ -16,7 +16,7 @@ Want to toss your last recording? Simply raise your eyebrows.
 
 ## Calibration
 
-We tailored the parameters of the program to our head, but each face is different. If you encounter some problems with the mouth/eyebrows movements, press `c`. Open your mouth a few times and press `c` again. Raise your eyebrows a few times and press `c` to finish the calibration. 
+We tailored the parameters of the program to our heads, but each face is different. If you encounter some problems with the mouth/eyebrows movements, press `c`. Open your mouth a few times and press `c` again. Raise your eyebrows a few times and press `c` to finish the calibration. 
 
 ## Custom sound creation
 
