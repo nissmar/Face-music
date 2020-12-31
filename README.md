@@ -22,5 +22,10 @@ We tailored the parameters of the program to our heads, but each face is differe
 
 All the sounds were generated with `sound_generator.py`. Feel free to create your own instruments and add them to the Face synthesizer!
 
-## Head pose dataset.
-To train our SVR, we used this dataset http://www-prima.inrialpes.fr/perso/Gourier/Faces/HPDatabase.html?fbclid=IwAR0DnDN5iouR5WZ7GZ5U_AQhaogKmuKJrrY15k6lIEMQkocDwVzjW0v4k-g
+## Tools used
+
+We compute the face features with dlib
+
+To train our SVR to detect the face pose, we use [this dataset](http://www-prima.inrialpes.fr/perso/Gourier/Faces/HPDatabase.html?fbclid=IwAR0DnDN5iouR5WZ7GZ5U_AQhaogKmuKJrrY15k6lIEMQkocDwVzjW0v4k-g)
+
+
